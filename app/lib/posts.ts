@@ -1,12 +1,17 @@
-// app/lib/posts.ts
+// /lib/posts.ts
+
 export type Post = {
   slug: string;
   title: string;
-  date: string; // ISO
+  date: string; // ISO date (YYYY-MM-DD)
   excerpt: string;
-  content: string; // simple HTML or MD you render directly
+  content: string; // HTML string rendered with dangerouslySetInnerHTML
 };
 
+/**
+ * Keep dates in strict ISO (YYYY-MM-DD) so server/client formatting stays deterministic.
+ * Add/modify posts here and they will be statically generated via generateStaticParams().
+ */
 export const posts: Post[] = [
   {
     slug: "data-centric-engineering-cuts-rework",
@@ -16,9 +21,9 @@ export const posts: Post[] = [
       "A simple governance model and clean tagging scheme can eliminate a shocking amount of churn. Here’s the checklist we use.",
     content: `
       <p>Rework creeps in when data ownership is fuzzy. This post outlines a lightweight governance model:
-      clear tag dictionaries, single-source-of-truth P&IDs, and a review cadence tied to milestones.</p>
+      clear tag dictionaries, single-source-of-truth P&amp;IDs, and a review cadence tied to milestones.</p>
       <ul>
-        <li>Define authoritative sources (P&ID, spec, 3D) and their change windows</li>
+        <li>Define authoritative sources (P&amp;ID, spec, 3D) and their change windows</li>
         <li>Use tag dictionaries with lint checks before model publish</li>
         <li>Track KPIs: clash density, late changes, handover data completeness</li>
       </ul>
@@ -48,3 +53,12 @@ export const posts: Post[] = [
     `,
   },
 ];
+
+/** Helpers (optional) */
+export const getAllPosts = (): Post[] =>
+  [...posts].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+export const getPostBySlug = (slug: string): Post | undefined =>
+  posts.find((p) => p.slug === slug);
+
+export const getPostSlugs = (): string[] => posts.map((p) => p.slug);

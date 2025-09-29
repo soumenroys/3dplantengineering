@@ -1,13 +1,12 @@
 // app/blog/[slug]/page.tsx
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-// NOTE: relative path from app/blog/[slug]/page.tsx → /app/lib/posts.ts (or wherever yours lives)
+// Relative path from /app/blog/[slug]/page.tsx to /lib/posts.ts
 import { posts } from "../../lib/posts";
 
 // Deterministic date formatter (SSR/client safe)
 function formatDateDDMMYYYY(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z");
+  const d = new Date(iso + "T00:00:00Z"); // force UTC midnight
   const day = String(d.getUTCDate()).padStart(2, "0");
   const month = String(d.getUTCMonth() + 1).padStart(2, "0");
   const year = d.getUTCFullYear();
@@ -30,7 +29,8 @@ export function generateMetadata(
       title: post.title,
       description: post.excerpt,
       type: "article",
-      url: `https://your-domain.com/blog/${post.slug}`,
+      // Optional: swap to your real domain once deployed
+      url: `https://3dplantengineering.vercel.app/blog/${post.slug}`,
       images: [{ url: "/images/cover.jpg" }],
     },
     twitter: {
@@ -55,9 +55,9 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
         dangerouslySetInnerHTML={{ __html: post.content }}
       />
       <div className="mt-10">
-        <Link href="/blog" className="text-sm text-orange-300 underline">
+        <a href="/blog" className="text-sm text-orange-300 underline">
           ← Back to Blog
-        </Link>
+        </a>
       </div>
     </div>
   );
