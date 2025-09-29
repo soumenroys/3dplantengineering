@@ -10,7 +10,7 @@ import {
   Instagram,
   ExternalLink,
 } from "lucide-react";
-import { getCookieCountry, setCookieCountry } from "../lib/client/country";
+import { getCookieCountry } from "../lib/client/country";
 
 // ===== Social links (your real pages) =====
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61579794313524";
@@ -351,14 +351,14 @@ const posts = [
     date: "2025-08-18",
     href: "/blog/data-centric-engineering-cuts-rework",
     excerpt:
-      "A simple governance model and clean tagging scheme can eliminate a shocking amount of churn. Here’s the checklist we use.",
+      "A simple governance model and clean tagging scheme can eliminate a shocking amount of churn. Here&rsquo;s the checklist we use.",
   },
   {
     title: "From 3D Models to Living Digital Twins",
     date: "2025-07-02",
     href: "/blog/from-3d-models-to-living-digital-twins",
     excerpt:
-      "Digital twins aren’t a ‘deliverable’—they’re a process. This post covers integrations, sync cadence, and ownership.",
+      "Digital twins aren&rsquo;t a &lsquo;deliverable&rsquo;&mdash;they&rsquo;re a process. This post covers integrations, sync cadence, and ownership.",
   },
   {
     title: "Getting Started with AI/ML for Plant QA",
@@ -390,7 +390,7 @@ export default function BookWebsiteDesign() {
     const cc = e.target.value as CC;
     setCountry(cc);
     setIsIN(cc === "IN");
-    setCookieCountry(cc); // persist via helper
+    document.cookie = `country=${cc}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
   };
 
   // Hero buy/QR: simple IN vs GLOBAL
@@ -498,7 +498,7 @@ export default function BookWebsiteDesign() {
           </div>
 
           {/* Book cover → clickable */}
-          <div className="mx-auto w-full max-w-sm">
+          <div className="mx-auto w/full max-w-sm">
             <a
               href={heroBuyUrl}
               target="_blank"
@@ -606,7 +606,9 @@ export default function BookWebsiteDesign() {
               <p className="mt-3 text-sm text-white/60">— Akiko Tanaka, Plant Digitalization Lead</p>
             </Card>
             <Card>
-              <p className="text-white/90">“If you’re stuck in clash firefighting, this is the roadmap out.”</p>
+              <p className="text-white/90">
+                “If you&rsquo;re stuck in clash firefighting, this is the roadmap out.”
+              </p>
               <p className="mt-3 text-sm text-white/60">— Ravi Narayanan, BIM Coordinator</p>
             </Card>
             <Card>
