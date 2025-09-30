@@ -1,17 +1,18 @@
 // app/blog/[slug]/page.tsx
-import type { Metadata } from "next";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { posts } from "../../lib/posts"; // relative to /app/blog/[slug]/
+import { posts } from "../../lib/posts"; // <-- inside app/lib now
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
 }
 
-export function generateMetadata(
-  { params }: { params: { slug: string } }
-): Metadata {
-  const post = posts.find((p) => p.slug === params.slug);
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> }
+): Promise<Metadata> {
+  const { slug } = await params;
+  const post = posts.find((p) => p.slug === slug);
   if (!post) return {};
 
   return {
@@ -21,7 +22,7 @@ export function generateMetadata(
       title: post.title,
       description: post.excerpt,
       type: "article",
-      url: `https://3dplantengineering.com/blog/${post.slug}`,
+      url: `https://your-domain.com/blog/${post.slug}`,
       images: [{ url: "/images/cover.jpg" }],
     },
     twitter: {
@@ -33,17 +34,19 @@ export function generateMetadata(
   };
 }
 
-// Deterministic date formatter (SSR/client safe)
 function formatDateDDMMYYYY(iso: string): string {
   const d = new Date(iso + "T00:00:00Z");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const year = d.getUTCFullYear();
-  return `${day}/${month}/${year}`;
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yyyy = d.getUTCFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
-export default function BlogPost({ params }: { params: { slug: string } }) {
-  const post = posts.find((p) => p.slug === params.slug);
+export default async function BlogPost(
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params;
+  const post = posts.find((p) => p.slug === slug);
   if (!post) return notFound();
 
   return (

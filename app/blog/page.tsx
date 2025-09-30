@@ -1,7 +1,6 @@
 // app/blog/page.tsx
 import { posts } from "../lib/posts";
 
-
 export const metadata = {
   title: "Blog — 3D Plant Engineering",
   description: "Implementation notes, case studies, and tool tips.",
