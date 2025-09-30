@@ -1,17 +1,8 @@
 // app/blog/[slug]/page.tsx
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-// Relative path from /app/blog/[slug]/page.tsx to /lib/posts.ts
-import { posts } from "../../lib/posts";
-
-// Deterministic date formatter (SSR/client safe)
-function formatDateDDMMYYYY(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z"); // force UTC midnight
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const year = d.getUTCFullYear();
-  return `${day}/${month}/${year}`;
-}
+import { posts } from "../../lib/posts"; // relative to /app/blog/[slug]/
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
@@ -22,6 +13,7 @@ export function generateMetadata(
 ): Metadata {
   const post = posts.find((p) => p.slug === params.slug);
   if (!post) return {};
+
   return {
     title: `${post.title} — 3D Plant Engineering`,
     description: post.excerpt,
@@ -29,8 +21,7 @@ export function generateMetadata(
       title: post.title,
       description: post.excerpt,
       type: "article",
-      // Optional: swap to your real domain once deployed
-      url: `https://3dplantengineering.vercel.app/blog/${post.slug}`,
+      url: `https://3dplantengineering.com/blog/${post.slug}`,
       images: [{ url: "/images/cover.jpg" }],
     },
     twitter: {
@@ -42,6 +33,15 @@ export function generateMetadata(
   };
 }
 
+// Deterministic date formatter (SSR/client safe)
+function formatDateDDMMYYYY(iso: string): string {
+  const d = new Date(iso + "T00:00:00Z");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const year = d.getUTCFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 export default function BlogPost({ params }: { params: { slug: string } }) {
   const post = posts.find((p) => p.slug === params.slug);
   if (!post) return notFound();
@@ -50,14 +50,16 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
     <div className="mx-auto max-w-3xl px-4 py-16 text-white">
       <p className="text-xs text-white/60">{formatDateDDMMYYYY(post.date)}</p>
       <h1 className="mt-2 text-3xl md:text-4xl font-bold">{post.title}</h1>
+
       <div
         className="prose prose-invert mt-6 max-w-none"
         dangerouslySetInnerHTML={{ __html: post.content }}
       />
+
       <div className="mt-10">
-        <a href="/blog" className="text-sm text-orange-300 underline">
+        <Link href="/blog" className="text-sm text-orange-300 underline">
           ← Back to Blog
-        </a>
+        </Link>
       </div>
     </div>
   );
