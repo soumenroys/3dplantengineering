@@ -2,8 +2,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image"; // ✅ next/image for perf
 import {
   Facebook,
   BookOpen,
@@ -12,9 +10,15 @@ import {
   Instagram,
   ExternalLink,
   Linkedin,
-  Star,
 } from "lucide-react";
 import { getCookieCountry } from "../lib/client/country";
+
+// --- GA typing (avoid no-explicit-any) ---
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
 
 // ===== Social links =====
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61579794313524";
@@ -105,8 +109,8 @@ const withUTM = (url: string, content: string) =>
   )}`;
 
 const track = (name: string) => {
-  if (typeof window !== "undefined" && (window as any).gtag) {
-    (window as any).gtag("event", "click", {
+  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    window.gtag("event", "click", {
       event_category: "outbound",
       event_label: name,
     });
@@ -620,14 +624,12 @@ export default function BookWebsiteDesign() {
               title="Open large book cover image"
               onClick={() => track("hero_cover_enlarge")}
             >
-              <Image
+              <img
                 src="/images/cover.jpg"
                 alt="Mastering 3D Plant Engineering book cover"
-                width={800}
-                height={1200}
-                priority
                 className="rounded-3xl shadow-2xl border border-white/10 transition hover:opacity-90"
-                sizes="(min-width: 768px) 384px, 100vw"
+                loading="lazy"
+                decoding="async"
               />
             </a>
             <p className="mt-2 text-center text-xs text-white/60">
@@ -704,7 +706,7 @@ export default function BookWebsiteDesign() {
             title="Read a Sample Chapter"
             sub="Download a short PDF to get a feel for the writing, structure, and tools we recommend."
           />
-        <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-2">
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <CTA
@@ -849,13 +851,12 @@ export default function BookWebsiteDesign() {
                 title="Open large back cover image"
                 onClick={() => track("backcover_enlarge")}
               >
-                <Image
+                <img
                   src={BACK_COVER_IMG}
                   alt="Back cover of the book showing highlights and author bios"
-                  width={800}
-                  height={1200}
                   className="rounded-3xl shadow-2xl border border-white/10 transition hover:opacity-90"
-                  sizes="(min-width: 768px) 384px, 100vw"
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setBackCoverError(true)}
                 />
               </a>
@@ -1151,7 +1152,7 @@ export default function BookWebsiteDesign() {
             title="Blog"
             sub="Implementation notes, case studies, and tool tips."
           />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {blogPosts.map((bp) => (
               <BlogItem key={bp.title} p={bp} />
             ))}
