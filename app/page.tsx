@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   Facebook,
   BookOpen,
@@ -10,26 +9,37 @@ import {
   ShoppingCart,
   Instagram,
   ExternalLink,
+  Linkedin,
 } from "lucide-react";
 import { getCookieCountry } from "../lib/client/country";
 
-// ===== Social links (your real pages) =====
+// --- GA typing (avoid no-explicit-any) ---
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+// ===== Social links =====
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61579794313524";
 const INSTAGRAM_URL = "https://www.instagram.com/roy_3d/";
 const YOUTUBE_URL = "https://www.youtube.com/@3DPlantEngineering-e4f3b/videos";
 const GOODREADS_URL =
   "https://www.goodreads.com/author/list/34690983.Soumen_Roy";
+const LINKEDIN_URL =
+  "https://www.linkedin.com/in/3d-plant-engineering-5b1633387/";
 
 // ===== Files under /public =====
-const SAMPLE_PDF = "/sample/Sample.pdf"; // /public/sample/Sample.pdf
+const SAMPLE_PDF = "/sample/Sample.pdf";
 const PRESS_KIT_ZIP = "/press/press-kit.zip";
 const PRESS_SHEET_PDF = "/press/press-sheet.pdf";
 const QR_AMZN_IN = "/images/qr-amazon-in.png";
 const QR_AMZN_COM = "/images/qr-amazon-com.png";
+const BACK_COVER_IMG = "/images/back-cover.jpg"; // ensure exists
 
-// ===== Author headshots (add these files to /public/images/authors/) =====
-const AUTHOR_SB_IMG = "/images/authors/sb-sengupta.jpg"; // 800x800 JPG/PNG
-const AUTHOR_SR_IMG = "/images/authors/soumen-roy.jpg"; // 800x800 JPG/PNG
+// ===== Author headshots (add to /public/images/authors/) =====
+const AUTHOR_SB_IMG = "/images/authors/sb-sengupta.jpg";
+const AUTHOR_SR_IMG = "/images/authors/soumen-roy.jpg";
 
 // ===== Extra Stores =====
 const FLIPKART_URL =
@@ -46,15 +56,17 @@ const nav = [
   { href: "#about", label: "About" },
   { href: "#toc", label: "Contents" },
   { href: "#sample", label: "Sample" },
+  { href: "#backcover", label: "Back Cover" },
   { href: "#reviews", label: "Reviews" },
   { href: "#authors", label: "Authors" },
   { href: "#buy", label: "Buy" },
   { href: "#press", label: "Press Kit" },
   { href: "#blog", label: "Blog" },
+  { href: "#faq", label: "FAQ" },
   { href: "#contact", label: "Contact" },
 ];
 
-// ===== Store links (Main Book: B0F9GXGZ96) =====
+// ===== Store links (B0F9GXGZ96) =====
 type CC =
   | "US"
   | "UK"
@@ -90,23 +102,19 @@ const AMAZON_BOOK: Record<CC, string> = {
   SE: "https://www.amazon.se/dp/B0F9GXGZ96",
 };
 
-// ===== International Edition (B0F7M239VJ) =====
-const AMAZON_INTL: Record<CC, string> = {
-  US: "https://www.amazon.com/dp/B0F7M239VJ",
-  UK: "https://www.amazon.co.uk/dp/B0F7M239VJ",
-  DE: "https://www.amazon.de/dp/B0F7M239VJ",
-  BR: "https://www.amazon.com.br/dp/B0F7M239VJ",
-  CA: "https://www.amazon.ca/dp/B0F7M239VJ",
-  AU: "https://www.amazon.com.au/dp/B0F7M239VJ",
-  FR: "https://www.amazon.fr/dp/B0F7M239VJ",
-  MX: "https://www.amazon.com.mx/dp/B0F7M239VJ",
-  ES: "https://www.amazon.es/dp/B0F7M239VJ",
-  IT: "https://www.amazon.it/dp/B0F7M239VJ",
-  NL: "https://www.amazon.nl/dp/B0F7M239VJ",
-  JP: "https://www.amazon.co.jp/dp/B0F7M239VJ",
-  IN: "https://www.amazon.in/dp/B0F7M239VJ",
-  PL: "https://www.amazon.pl/dp/B0F7M239VJ",
-  SE: "https://www.amazon.se/dp/B0F7M239VJ",
+// ——— Helpers: UTM & lightweight outbound click tracking ———
+const withUTM = (url: string, content: string) =>
+  `${url}?utm_source=site&utm_medium=cta&utm_campaign=book_launch&utm_content=${encodeURIComponent(
+    content
+  )}`;
+
+const track = (name: string) => {
+  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    window.gtag("event", "click", {
+      event_category: "outbound",
+      event_label: name,
+    });
+  }
 };
 
 function detectIN(): boolean {
@@ -118,9 +126,9 @@ function detectIN(): boolean {
   return false;
 }
 
-// Deterministic date formatter (SSR/client safe)
+// deterministic date
 function formatDateDDMMYYYY(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z"); // Force UTC
+  const d = new Date(iso + "T00:00:00Z");
   const day = String(d.getUTCDate()).padStart(2, "0");
   const month = String(d.getUTCMonth() + 1).padStart(2, "0");
   const year = d.getUTCFullYear();
@@ -139,18 +147,21 @@ const CTA = ({
   rel,
   children,
   ariaLabel,
+  onClick,
 }: {
   href?: string;
   target?: React.HTMLAttributeAnchorTarget;
   rel?: string;
   children: React.ReactNode;
   ariaLabel?: string;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
 }) => (
   <a
     href={href}
     target={target}
     rel={rel}
     aria-label={ariaLabel}
+    onClick={onClick}
     className="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_30px_rgb(2,6,23,0.35)] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-orange-400"
     style={{
       background:
@@ -167,18 +178,21 @@ const Ghost = ({
   target,
   rel,
   ariaLabel,
+  onClick,
 }: {
   href?: string;
   children: React.ReactNode;
   target?: React.HTMLAttributeAnchorTarget;
   rel?: string;
   ariaLabel?: string;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
 }) => (
   <a
     href={href}
     target={target}
     rel={rel}
     aria-label={ariaLabel}
+    onClick={onClick}
     className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white/90 backdrop-blur transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40"
   >
     {children}
@@ -203,7 +217,7 @@ const SectionTitle = ({
     <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-white">
       {title}
     </h2>
-    {sub && <p className="mt-3 max-w-2xl text-white/70">{sub}</p>}
+    {sub && <p className="mt-3 max-w-3xl text-white/70">{sub}</p>}
   </header>
 );
 
@@ -218,35 +232,56 @@ function TOCAccordion() {
   const [open, setOpen] = useState<number | null>(0);
   const items = [
     {
-      h: "Foundations",
+      h: "Part I — Foundations & Set-up",
       t: [
-        "Why Data-Centric Engineering Wins",
-        "Core Toolchain: BIM, P&IDs, 3D, Document Control",
-        "Standards & Governance",
+        "1. The Shift to Data-Centric Engineering",
+        "2. 3D/BIM Toolchain, Roles & RACI",
+        "3. Standards, Codes & Governance",
+        "4. Infra & Project Set-up (hardware, networks, cloud)",
+        "5. Document Control & Versioning",
       ],
     },
     {
-      h: "Design & Automation",
+      h: "Part II — Design, Libraries & Automation",
       t: [
-        "Intelligent P&IDs & Tagging",
-        "Parametric Libraries & CAD Automation",
-        "Concurrent Worksharing & Clash Avoidance",
+        "6. Intelligent P&IDs & Tagging Strategy",
+        "7. Parametric Catalogs & Commodity Coding for BOQ",
+        "8. Rules, Clash Avoidance & Model Integrity",
+        "9. Concurrent Engineering & Distributed Worksharing",
+        "10. Review Workflows, Issue Tracking & Sign-off",
       ],
     },
     {
-      h: "Digital Twins & AI",
+      h: "Part III — Digitalisation & Reality Capture",
       t: [
-        "From 3D to Digital Twin",
-        "Photogrammetry, LiDAR & Reality Capture",
-        "AI/ML for Quality & Throughput",
+        "11. Photogrammetry, LiDAR & GPS/Survey Integration",
+        "12. Satellite Imagery & Holographic/AR Models",
+        "13. As-Built Reconciliation & Change Management",
+        "14. Documented Architecture for Global Collaboration",
       ],
     },
     {
-      h: "Delivery & Handover",
+      h: "Part IV — From 3D to Digital Twins",
       t: [
-        "Data Handover, CMMS/ERP Integrations",
-        "Owner-Operator Readiness",
-        "KPIs & ROI Dashboards",
+        "15. Data Models & Twin Architecture",
+        "16. Integrations with ERP/CMMS/MES",
+        "17. KPI Dashboards & Lifecycle Data Handover",
+      ],
+    },
+    {
+      h: "Part V — AI/ML & Industry 4→5",
+      t: [
+        "18. Practical AI for QA/QC & Model Checks",
+        "19. Throughput, Safety & Cost Optimisation",
+        "20. Roadmaps, ROI & Org Readiness",
+      ],
+    },
+    {
+      h: "Appendices",
+      t: [
+        "A. SOP Templates & Checklists",
+        "B. Sample Data Dictionaries & Tagging Schemes",
+        "C. Pilot Plans & Risk Registers",
       ],
     },
   ];
@@ -325,6 +360,15 @@ function SocialLinks() {
       >
         <BookOpen className="h-5 w-5" />
       </a>
+      <a
+        href={LINKEDIN_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-white/70 hover:text-white"
+        aria-label="LinkedIn"
+      >
+        <Linkedin className="h-5 w-5" />
+      </a>
     </div>
   );
 }
@@ -345,34 +389,83 @@ function GoodreadsButton({ href = GOODREADS_URL }: { href?: string }) {
   );
 }
 
-// ————————— Blog data —————————
-const posts = [
+// ————————— Blog (expanded inline content) —————————
+type BlogPost = {
+  title: string;
+  date: string;
+  excerpt: string;
+  body: string;
+};
+const blogPosts: BlogPost[] = [
   {
     title: "How Data-Centric Engineering Cuts Rework by 30%",
     date: "2025-08-18",
-    href: "/blog/data-centric-engineering-cuts-rework",
     excerpt:
-      "A simple governance model and clean tagging scheme can eliminate a shocking amount of churn. Here’s the checklist we use.",
+      "A governance model + clean tagging scheme eliminates a surprising amount of churn.",
+    body:
+      "Most clash firefighting is a governance problem, not a tools problem. Start with a reference tagging scheme, freeze it, and drive all downstream artifacts from tags.\n\n" +
+      "Set up three simple controls: (1) a tag dictionary with ownership, (2) a change request workflow for new classes/tags, and (3) an automated nightly integrity check that flags missing metadata and spec mismatches.\n\n" +
+      "Measure rework as a KPI and publish it weekly. When teams see their rework trend, behaviors change. Pair this with a rules library (typical clearances, nozzle envelopes, maintenance zones) so issues never reach the model.\n\n" +
+      "Practical tip: run a 'no orphan tags' query daily. If a tag lacks a discipline owner or a location, the issue goes to the coordinator within 24 hours. This one routine prevents a month of reconciliation headaches later.\n\n" +
+      "Case study snippet: one EPC reduced late-stage pipe reroutes by 28% in two quarters after freezing a commodity-coding scheme and making it the single source of truth for BOQ and procurement.",
   },
   {
     title: "From 3D Models to Living Digital Twins",
     date: "2025-07-02",
-    href: "/blog/from-3d-models-to-living-digital-twins",
     excerpt:
-      "Digital twins aren’t a ‘deliverable’—they’re a process. This post covers integrations, sync cadence, and ownership.",
+      "Digital twins are a process, not a file. Think ownership, sync cadence, and integrations.",
+    body:
+      "Treat your model as a data backbone. Define which system owns which attributes (CDE vs ERP vs CMMS), how often each sync runs, and who signs off success.\n\n" +
+      "A minimal viable twin links tags, locations, and status to maintenance work orders. Start with a commissioning handover where every tag in CMMS has a pointer back to the model object. This alone saves countless hours during shutdown planning.\n\n" +
+      "Establish stewardship: engineering owns geometry and specs; operations owns runtime attributes; IT owns pipelines and access. The twin thrives when ownership is clear.\n\n" +
+      "Governance pattern: an integration catalog (what flows where, frequency, owner), plus a 'red list' of attributes that may not be overwritten during syncs (think serial numbers, certifications, QA status).",
   },
   {
     title: "Getting Started with AI/ML for Plant QA",
     date: "2025-06-10",
-    href: "/blog/ai-ml-plant-qa-getting-started",
     excerpt:
-      "Practical use-cases where AI catches issues earlier: spec mismatches, missing metadata, and model integrity checks.",
+      "Small pilots first: model integrity checks, missing attributes, and spec drift.",
+    body:
+      "Begin with CSV exports of your model database. Use rule-based and ML-based anomaly detection to flag outliers: diameter-pressure mismatches, missing class notes, orphaned tags, and non-compliant valve orientations.\n\n" +
+      "Close the loop by pushing results into your issue tracker with tag IDs and screenshot links. Aim for a one-week pilot that runs nightly and emails a succinct report to the QA/QC channel.\n\n" +
+      "Scale cautiously: once trust is built, add predictive checks (e.g., likely clash zones based on past data) and auto-fixes for common attribute gaps.\n\n" +
+      "What to track: % of issues auto-detected, time-to-close, and recurrence rate by discipline. Use these metrics to justify the next automation step.",
   },
 ];
+
+function BlogItem({ p }: { p: BlogPost }) {
+  const [open, setOpen] = useState(false);
+  const paragraphs = p.body.split("\n\n");
+  return (
+    <Card>
+      <p className="text-xs text-white/60">{formatDateDDMMYYYY(p.date)}</p>
+      <h3 className="mt-1 text-lg font-semibold">{p.title}</h3>
+      <p className="mt-2 text-sm text-white/70">{p.excerpt}</p>
+      {open && (
+        <div className="mt-3 space-y-3">
+          {paragraphs.map((para, i) => (
+            <p key={i} className="text-sm text-white/80">
+              {para}
+            </p>
+          ))}
+        </div>
+      )}
+      <div className="mt-4">
+        <button
+          onClick={() => setOpen(!open)}
+          className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white/90 backdrop-blur transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40"
+        >
+          {open ? "Show less ↑" : "Read more →"}
+        </button>
+      </div>
+    </Card>
+  );
+}
 
 export default function BookWebsiteDesign() {
   const [isIN, setIsIN] = useState<boolean>(false);
   const [country, setCountry] = useState<CC>("US");
+  const [backCoverError, setBackCoverError] = useState(false);
 
   useEffect(() => {
     const cookieCC = getCookieCountry();
@@ -386,7 +479,6 @@ export default function BookWebsiteDesign() {
     }
   }, []);
 
-  // Persist selection + sync isIN
   const onCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const cc = e.target.value as CC;
     setCountry(cc);
@@ -394,17 +486,15 @@ export default function BookWebsiteDesign() {
     document.cookie = `country=${cc}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
   };
 
-  // Hero buy/QR: simple IN vs GLOBAL
-  const heroBuyUrl = isIN ? AMAZON_BOOK.IN : AMAZON_BOOK.US;
+  const heroBuyUrlRaw = isIN ? AMAZON_BOOK.IN : AMAZON_BOOK.US;
+  const heroBuyUrl = withUTM(heroBuyUrlRaw, "hero-primary");
   const heroQR = isIN ? QR_AMZN_IN : QR_AMZN_COM;
   const heroLabel = isIN ? "Amazon India" : "Amazon.com";
 
-  // Buy section: use selected country for both editions
-  const bookUrl = AMAZON_BOOK[country] || AMAZON_BOOK.US;
-  const intlUrl = AMAZON_INTL[country] || AMAZON_INTL.US;
+  const bookUrl = withUTM(AMAZON_BOOK[country] || AMAZON_BOOK.US, "buy-main");
 
   return (
-    <div className="min-h-screen scroll-smooth bg-[#0b1220] text-white">
+    <div className="min-h-screen scroll-smooth bg-[#0b1220] text-white pb-20 md:pb-0">
       {/* Glow background */}
       <div
         aria-hidden
@@ -435,7 +525,13 @@ export default function BookWebsiteDesign() {
           </nav>
           <div className="hidden md:flex items-center gap-4">
             <SocialLinks />
-            <CTA href={heroBuyUrl} target="_blank" rel="noopener noreferrer" ariaLabel="Buy now">
+            <CTA
+              href={heroBuyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              ariaLabel="Buy now"
+              onClick={() => track("hero_buy_now")}
+            >
               Buy Now
             </CTA>
           </div>
@@ -455,16 +551,35 @@ export default function BookWebsiteDesign() {
               reduce clashes, and hand over clean datasets ready for operations.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <CTA href={SAMPLE_PDF} target="_blank" rel="noopener noreferrer" ariaLabel="Read sample PDF">
+              <CTA
+                href={SAMPLE_PDF}
+                target="_blank"
+                rel="noopener noreferrer"
+                ariaLabel="Read sample PDF"
+                onClick={() => track("hero_read_sample")}
+              >
                 Read Sample (PDF)
               </CTA>
-              <Ghost href={heroBuyUrl} target="_blank" rel="noopener noreferrer" ariaLabel={`Buy on ${heroLabel}`}>
+              <Ghost
+                href={withUTM(heroBuyUrlRaw, "hero-ghost")}
+                target="_blank"
+                rel="noopener noreferrer"
+                ariaLabel={`Buy on ${heroLabel}`}
+                onClick={() => track("hero_buy_on_amazon")}
+              >
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Buy on {heroLabel}
               </Ghost>
             </div>
+
+            {/* Hero micro social proof */}
+            <p className="mt-4 text-xs text-white/70 italic">
+              “The digital-twin section alone is worth the price.” — Plant Digitalization Lead
+            </p>
+
             <div className="mt-6 flex flex-wrap gap-2 text-white/70">
-              <Pill>For EPC / Owners</Pill>
+              <Pill>EPC / Owner-Operator</Pill>
+              <Pill>BIM / Piping / QA</Pill>
               <Pill>Clash ↓, Throughput ↑</Pill>
               <Pill>Data-centric Handover</Pill>
             </div>
@@ -483,10 +598,11 @@ export default function BookWebsiteDesign() {
                   Prefer mobile? Scan this QR to open the book on {heroLabel}.
                 </p>
                 <a
-                  href={heroBuyUrl}
+                  href={withUTM(heroBuyUrlRaw, "hero-qr-text")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 inline-block text-sm text-orange-300 underline"
+                  onClick={() => track("hero_qr_text_link")}
                 >
                   Open {heroLabel} →
                 </a>
@@ -498,14 +614,15 @@ export default function BookWebsiteDesign() {
             </div>
           </div>
 
-          {/* Book cover → clickable */}
+          {/* Book cover → clickable to enlarge (open image) */}
           <div className="mx-auto w-full max-w-sm">
             <a
-              href={heroBuyUrl}
+              href="/images/cover.jpg"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`Buy on ${heroLabel}`}
-              title={`Buy on ${heroLabel}`}
+              aria-label="Open large book cover image"
+              title="Open large book cover image"
+              onClick={() => track("hero_cover_enlarge")}
             >
               <img
                 src="/images/cover.jpg"
@@ -516,32 +633,54 @@ export default function BookWebsiteDesign() {
               />
             </a>
             <p className="mt-2 text-center text-xs text-white/60">
-              Clicking the cover opens {heroLabel} in a new tab.
+              Click to view large cover image.
             </p>
           </div>
         </div>
       </section>
 
-      {/* About */}
+      {/* About (detailed) */}
       <section id="about" className="border-t border-white/10 bg-white/5">
         <div className="mx-auto max-w-7xl px-4 py-16">
           <SectionTitle
             kicker="About the Book"
-            title="Build plants smarter with data-centric design"
-            sub="From intelligent P&IDs and parametric catalogs to digital twins and AI—this book turns best practices into a repeatable playbook for EPCs and owner-operators."
+            title="A practical, vendor-neutral roadmap for data-driven plant projects"
+            sub="Move from drawing-centric delivery to information-centric engineering. The book explains the people, process and platform shifts that shorten schedules, reduce rework, and deliver clean handover data that operations can trust."
           />
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-3">
             <Card>
-              <h3 className="text-lg font-semibold">Who it’s for</h3>
-              <p className="mt-2 text-white/70 text-sm">
-                Engineering managers, BIM leads, piping designers, project controls, QA/QC, and owner-operator teams who need faster, clash-free, handover-ready projects.
+              <h3 className="text-lg font-semibold">What you’ll learn</h3>
+              <ul className="mt-2 list-disc pl-6 text-sm text-white/80 space-y-1.5">
+                <li>Set up a robust 3D/BIM environment and distributed collaboration.</li>
+                <li>Design SOPs for reviews, issue tracking and clash resolution.</li>
+                <li>Create parametric catalogs & commodity codes for accurate BOQ.</li>
+                <li>Manage documents and models in cloud-ready CDEs.</li>
+                <li>Plan data handover with ERP/CMMS/MES integrations.</li>
+                <li>Introduce AI/ML pilots for QA/QC and throughput gains.</li>
+              </ul>
+            </Card>
+            <Card>
+              <h3 className="text-lg font-semibold">How the playbook works</h3>
+              <p className="mt-2 text-white/80 text-sm">
+                Each chapter ends with a checklist and an “activation”—a small, high-leverage change
+                you can run in a week (e.g., tag dictionary freeze, nozzle-clearance rules, or a clash-
+                prevention gate). Templates for RACI, approval matrices, data dictionaries and KPI
+                dashboards make improvements measurable and repeatable across projects.
+              </p>
+              <p className="mt-3 text-white/80 text-sm">
+                Workflows are tool-agnostic and focus on handoffs between functions—engineering,
+                procurement, construction and operations—so information stays consistent from bid to
+                commissioning and beyond.
               </p>
             </Card>
             <Card>
-              <h3 className="text-lg font-semibold">What you’ll get</h3>
-              <p className="mt-2 text-white/70 text-sm">
-                Clear workflows, checklists, KPIs, and templates to reduce rework, automate deliverables, and deliver clean, structured data that integrates with CMMS/ERP.
-              </p>
+              <h3 className="text-lg font-semibold">Outcomes</h3>
+              <ul className="mt-2 list-disc pl-6 text-sm text-white/80 space-y-1.5">
+                <li>Fewer clashes and change orders with early rules & libraries.</li>
+                <li>Handover-ready, structured asset data aligned to operations.</li>
+                <li>Clear KPIs and governance that sustain gains over time.</li>
+                <li>Reusable playbooks and templates for future projects and teams.</li>
+              </ul>
             </Card>
           </div>
         </div>
@@ -550,12 +689,16 @@ export default function BookWebsiteDesign() {
       {/* Contents */}
       <section id="toc" className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 py-16">
-          <SectionTitle kicker="Inside the Book" title="Table of Contents" sub="Expand each part to preview chapters" />
+          <SectionTitle
+            kicker="Inside the Book"
+            title="Table of Contents"
+            sub="Expand each part to explore chapters, workflows, and templates."
+          />
           <TOCAccordion />
         </div>
       </section>
 
-      {/* Sample */}
+      {/* Sample + Lead Magnet */}
       <section id="sample" className="border-t border-white/10 bg-white/5">
         <div className="mx-auto max-w-7xl px-4 py-16">
           <SectionTitle
@@ -563,18 +706,164 @@ export default function BookWebsiteDesign() {
             title="Read a Sample Chapter"
             sub="Download a short PDF to get a feel for the writing, structure, and tools we recommend."
           />
-          <div className="flex flex-wrap items-center gap-3">
-            <CTA href={SAMPLE_PDF} target="_blank" rel="noopener noreferrer" ariaLabel="Download Sample PDF">
-              Download Sample (PDF)
-            </CTA>
-            <Ghost href={AMAZON_BOOK.IN} target="_blank" rel="noopener noreferrer">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Amazon.in
-            </Ghost>
-            <Ghost href={AMAZON_BOOK.US} target="_blank" rel="noopener noreferrer">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Amazon.com
-            </Ghost>
+          <div className="grid gap-8 md:grid-cols-2">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <CTA
+                  href={SAMPLE_PDF}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  ariaLabel="Download Sample PDF"
+                  onClick={() => track("sample_download_pdf")}
+                >
+                  Download Sample (PDF)
+                </CTA>
+                <Ghost
+                  href={withUTM(AMAZON_BOOK.IN, "sample-amazon-in")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("sample_amazon_in")}
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Amazon.in
+                </Ghost>
+                <Ghost
+                  href={withUTM(AMAZON_BOOK.US, "sample-amazon-us")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("sample_amazon_us")}
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Amazon.com
+                </Ghost>
+                <Ghost
+                  href={withUTM(YOUTUBE_URL, "sample-look-inside-video")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("sample_look_inside_video")}
+                >
+                  <Youtube className="mr-2 h-4 w-4" />
+                  Watch 60s Look-Inside
+                </Ghost>
+              </div>
+              <p className="mt-6 text-sm text-white/80">
+                The sample includes the foundational checklist for setting up a 3D/BIM project, a practical
+                clash-prevention workflow, and a preview of the handover data model.
+              </p>
+              <ul className="mt-4 list-disc pl-6 text-white/80 text-sm space-y-1.5">
+                <li>
+                  <em>“Don’t treat models as drawings.”</em> Treat them as structured data objects that drive
+                  procurement, construction and operations.
+                </li>
+                <li>
+                  <em>“Clash firefighting is a symptom.”</em> Fix root causes with early rules, libraries and
+                  governance—then clashes drop naturally.
+                </li>
+                <li>
+                  <em>“Handover starts on day one.”</em> Define tags, metadata and ownership early—the last mile
+                  becomes a click, not a scramble.
+                </li>
+              </ul>
+
+              {/* Lead magnet */}
+              <Card>
+                <h3 className="text-base font-semibold">Free: Project Kickoff Checklist (PDF)</h3>
+                <p className="mt-2 text-sm text-white/80">
+                  Get a one-page checklist we use to start 3D/BIM projects on the right foot.
+                </p>
+                <form
+                  action="https://formspree.io/f/yourid" // TODO: replace with your Formspree/ESP endpoint
+                  method="POST"
+                  className="mt-3 flex gap-3 max-w-lg"
+                >
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="Work email"
+                    className="flex-1 rounded-xl bg-white/5 border border-white/10 px-3 py-3 text-sm text-white placeholder-white/50"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_30px_rgb(2,6,23,0.35)]"
+                    style={{ background: "linear-gradient(135deg,#f97316,#f59e0b)" }}
+                    onClick={() => track("lead_magnet_submit")}
+                  >
+                    Get PDF
+                  </button>
+                </form>
+              </Card>
+            </div>
+            <Card>
+              <h3 className="text-lg font-semibold">Excerpt</h3>
+              <p className="mt-2 text-sm text-white/80">
+                “Towards that end, this book offers a comprehensive guide for learning as well as applying
+                techniques for faster delivery of capital projects including their overall lifecycle management.
+                We move beyond ‘drawing packages’ and establish a common data language across engineering,
+                procurement, construction and plant operations.”
+              </p>
+              <p className="mt-3 text-sm text-white/80">
+                “Customization and commodity coding of bulk items enables reliable BOQ and inventory streams.
+                When these codes flow through your 3D model, ERP and CMMS, you unlock management by facts—
+                not by emails and spreadsheets.”
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Back Cover (same visual size as hero cover + enlarge on click) */}
+      <section id="backcover" className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-4 py-16">
+          <SectionTitle
+            kicker="From the Back Cover"
+            title="What this book equips you to do"
+            sub="Highlights and author details as printed on the back cover."
+          />
+          <div className="grid gap-8 md:grid-cols-2">
+            <div>
+              <ul className="list-disc pl-6 text-white/80 text-sm space-y-1.5">
+                <li>Effectively develop a 3D engineering set-up and distributed collaboration.</li>
+                <li>Establish hardware/software infrastructure for project execution.</li>
+                <li>Create 3D workflows, SOPs, review mechanisms & clash resolution procedures.</li>
+                <li>Leverage intelligence & data for higher productivity and quality.</li>
+                <li>Commodity coding for BOQ generation and streamlined procurement/inventory.</li>
+                <li>Digitalisation using photogrammetry, GPS, holographic models & digital twins.</li>
+                <li>Document management using cloud CDEs tailored to 3D deliverables.</li>
+                <li>Capital Project Management (cPLM) and lifecycle handover strategies.</li>
+                <li>Use of BIM in operations with ERP, SAP & MES aligned to Industry 4.0/5.0.</li>
+                <li>Core concepts of AI/ML/NLP applied to 3D plant engineering.</li>
+              </ul>
+              {backCoverError && (
+                <p className="mt-3 text-xs text-red-300">
+                  Back cover image not found. Please place <code>/public/images/back-cover.jpg</code>.
+                </p>
+              )}
+            </div>
+
+            {/* Make size == hero cover: wrap with same max-w-sm */}
+            <div className="mx-auto w-full max-w-sm">
+              <a
+                href={BACK_COVER_IMG}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open large back cover image"
+                title="Open large back cover image"
+                onClick={() => track("backcover_enlarge")}
+              >
+                <img
+                  src={BACK_COVER_IMG}
+                  alt="Back cover of the book showing highlights and author bios"
+                  className="rounded-3xl shadow-2xl border border-white/10 transition hover:opacity-90"
+                  loading="lazy"
+                  decoding="async"
+                  onError={() => setBackCoverError(true)}
+                />
+              </a>
+              <p className="mt-2 text-center text-xs text-white/60">
+                Click to view large back cover image.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -592,35 +881,19 @@ export default function BookWebsiteDesign() {
               <p className="text-white/90">
                 “Finally, a no-nonsense bridge between BIM theory and what EPC teams actually do under deadline.”
               </p>
-              <p className="mt-3 text-sm text-white/60">— Priya Mehta, Project Engineering Lead</p>
+              <p className="mt-3 text-sm text-white/60">— Project Engineering Lead</p>
             </Card>
             <Card>
               <p className="text-white/90">
                 “Our handover data quality jumped immediately using the checklists and KPIs in this book.”
               </p>
-              <p className="mt-3 text-sm text-white/60">— Daniel Ortiz, Commissioning Manager</p>
+              <p className="mt-3 text-sm text-white/60">— Commissioning Manager</p>
             </Card>
             <Card>
               <p className="text-white/90">
                 “The digital-twin section alone is worth the price—clear, vendor-neutral, and practical.”
               </p>
-              <p className="mt-3 text-sm text-white/60">— Akiko Tanaka, Plant Digitalization Lead</p>
-            </Card>
-            <Card>
-              <p className="text-white/90">“If you’re stuck in clash firefighting, this is the roadmap out.”</p>
-              <p className="mt-3 text-sm text-white/60">— Ravi Narayanan, BIM Coordinator</p>
-            </Card>
-            <Card>
-              <p className="text-white/90">
-                “Loved the AI/ML chapter—simple pilots we could run in a week, not a research project.”
-              </p>
-              <p className="mt-3 text-sm text-white/60">— Laura Kim, QA/QC Manager</p>
-            </Card>
-            <Card>
-              <p className="text-white/90">
-                “Transforms handover from a scramble to a predictable, data-centric process.”
-              </p>
-              <p className="mt-3 text-sm text-white/60">— Marco Rossi, Owner-Operator Representative</p>
+              <p className="mt-3 text-sm text-white/60">— Plant Digitalization Lead</p>
             </Card>
           </div>
           <div className="mt-8 flex items-center justify-center">
@@ -629,7 +902,7 @@ export default function BookWebsiteDesign() {
         </div>
       </section>
 
-      {/* Authors — equal weight with images and portfolio CTA for Soumen */}
+      {/* Authors — unified button style (Ghost) */}
       <section id="authors" className="border-t border-white/10 bg-white/5">
         <div className="mx-auto max-w-7xl px-4 py-16">
           <SectionTitle
@@ -650,17 +923,27 @@ export default function BookWebsiteDesign() {
                   decoding="async"
                 />
                 <div>
-                  <h3 className="text-lg font-semibold">S. B. Sengupta</h3>
+                  <h3 className="text-lg font-semibold">Subhra Baran Sengupta</h3>
                   <p className="mt-2 text-white/70 text-sm">
-                    Veteran plant engineer with 37+ years across power, oil &amp; gas, infrastructure, chemicals,
-                    mineral beneficiation, and steel. He has set up engineering organizations, led large
-                    multidisciplinary EPC/EPCM and owner’s engineering teams, and driven reliable delivery through
-                    people–process–CAD/CAE toolchains.
+                    37+ years across power, oil &amp; gas, infrastructure, chemicals, mineral beneficiation and
+                    steel. Has led consulting, EPC and owner’s engineering teams; set up engineering organizations;
+                    and created initiatives for performance improvement and engineering solutions.
                   </p>
                   <p className="mt-2 text-white/70 text-sm">
-                    Qualifications include Graduate Mechanical Engineer (IIT Kharagpur), postgraduate in Project
-                    Engineering, and Cost Accountant.
+                    Graduate Mechanical Engineer (IIT Kharagpur); postgraduate in Project Engineering; Cost Accountant.
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <Ghost
+                      href="https://www.linkedin.com/in/subhra-sengupta-6aa3512a/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Subhra Baran Sengupta on LinkedIn"
+                      onClick={() => track("author_sb_linkedin")}
+                    >
+                      <Linkedin className="mr-2 h-4 w-4" />
+                      LinkedIn
+                    </Ghost>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -683,29 +966,37 @@ export default function BookWebsiteDesign() {
                       rel="noopener noreferrer"
                       className="underline decoration-2 underline-offset-4 hover:opacity-90"
                       title="Open Soumen Roy’s portfolio"
+                      onClick={() => track("author_sr_portfolio")}
                     >
                       Soumen Roy
                     </a>
                     <ExternalLink className="h-4 w-4 opacity-75" aria-hidden />
                   </h3>
                   <p className="mt-2 text-white/70 text-sm">
-                    Technology &amp; operations leader focused on business transformation and data-driven delivery.
-                    MCA (SMU) and DCE (SCETE); certifications in Six Sigma (manufacturing), ESRI GIS, and AI/ML.
-                    He has led automation initiatives using AI/BI/ML/RPA to boost throughput and quality.
-                  </p>
-                  <p className="mt-2 text-white/70 text-sm">
-                    Early innovation work includes deploying drone-based digital photogrammetry and LiDAR in the steel
-                    industry.
+                    Technology &amp; operations leader in business transformation and data-driven delivery.
+                    MCA (SMU) and DCE (SCETE); Six Sigma, ESRI GIS and AI/ML certified. Pioneered drone-based
+                    photogrammetry and LiDAR in steel plants; led automation using AI/BI/ML/RPA.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-3">
-                    <CTA
+                    <Ghost
                       href="https://soumenroy.com/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      ariaLabel="Visit Soumen Roy portfolio"
+                      aria-label="Visit Soumen Roy portfolio"
+                      onClick={() => track("author_sr_portfolio_ghost")}
                     >
                       Visit Portfolio
-                    </CTA>
+                    </Ghost>
+                    <Ghost
+                      href="https://www.linkedin.com/in/sowmenroy/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Soumen Roy on LinkedIn"
+                      onClick={() => track("author_sr_linkedin")}
+                    >
+                      <Linkedin className="mr-2 h-4 w-4" />
+                      LinkedIn
+                    </Ghost>
                   </div>
                 </div>
               </div>
@@ -714,7 +1005,7 @@ export default function BookWebsiteDesign() {
         </div>
       </section>
 
-      {/* Buy (country-wise) */}
+      {/* Buy */}
       <section id="buy" className="border-t border-white/10 bg-[#111827]">
         <div className="mx-auto max-w-7xl px-4 py-16">
           <SectionTitle
@@ -723,15 +1014,13 @@ export default function BookWebsiteDesign() {
             sub="Choose the store that works best for you"
           />
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {/* Main Book with selector INSIDE the tile */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Book Edition */}
             <Card>
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-orange-400" /> Main Book
+                <ShoppingCart className="h-5 w-5 text-orange-400" /> Book Edition
               </h3>
-              <p className="mt-2 text-sm text-white/70">
-                Choose your country to get the right store link:
-              </p>
+              <p className="mt-2 text-sm text-white/70">Select your region:</p>
 
               <div className="mt-3 flex items-center gap-3">
                 <label htmlFor="country" className="text-sm text-white/80">
@@ -766,29 +1055,15 @@ export default function BookWebsiteDesign() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-                aria-label="Buy main book"
+                aria-label="Buy book"
+                onClick={() => track("buy_amazon_country")}
               >
                 <ShoppingCart className="h-4 w-4" />
                 Buy — Amazon ({country})
               </a>
-            </Card>
-
-            {/* International Edition */}
-            <Card>
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-orange-400" /> International Edition
-              </h3>
-              <p className="mt-2 text-sm text-white/70">Alternate listing available in many regions</p>
-              <a
-                href={intlUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-                aria-label="Buy international edition"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Buy — Amazon ({country})
-              </a>
+              <p className="mt-3 text-xs text-white/50">
+                ISBN: 978-93-49311-76-3 • Publisher: White Falcon Publishing
+              </p>
             </Card>
 
             {/* Other Stores */}
@@ -799,18 +1074,20 @@ export default function BookWebsiteDesign() {
               <p className="mt-2 text-sm text-white/70">Prefer a different marketplace?</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <a
-                  href={FLIPKART_URL}
+                  href={withUTM(FLIPKART_URL, "buy-flipkart")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15"
+                  onClick={() => track("buy_flipkart")}
                 >
                   Flipkart (IN)
                 </a>
                 <a
-                  href={WFP_STORE_URL}
+                  href={withUTM(WFP_STORE_URL, "buy-wfp")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15"
+                  onClick={() => track("buy_wfp_store")}
                 >
                   WFP Store
                 </a>
@@ -834,6 +1111,7 @@ export default function BookWebsiteDesign() {
               target="_blank"
               rel="noopener noreferrer"
               ariaLabel="Download Press Kit ZIP"
+              onClick={() => track("press_zip")}
             >
               Download Press Kit (ZIP)
             </CTA>
@@ -842,17 +1120,31 @@ export default function BookWebsiteDesign() {
               target="_blank"
               rel="noopener noreferrer"
               ariaLabel="Download one-page Press Sheet PDF"
+              onClick={() => track("press_sheet_pdf")}
             >
               Download Press Sheet (PDF)
             </Ghost>
-            <Ghost href={GOODREADS_URL} target="_blank" rel="noopener noreferrer">
-              Goodreads Profile
+            <Ghost
+              href={GOODREADS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track("press_goodreads")}
+            >
+              Goodreads
+            </Ghost>
+            <Ghost
+              href={LINKEDIN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track("press_linkedin")}
+            >
+              LinkedIn
             </Ghost>
           </div>
         </div>
       </section>
 
-      {/* Blog */}
+      {/* Blog (inline, expanded) */}
       <section id="blog" className="border-t border-white/10 bg-white/5">
         <div className="mx-auto max-w-7xl px-4 py-16">
           <SectionTitle
@@ -860,22 +1152,47 @@ export default function BookWebsiteDesign() {
             title="Blog"
             sub="Implementation notes, case studies, and tool tips."
           />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {posts.map((p) => (
-              <Card key={p.title}>
-                <p className="text-xs text-white/60">{formatDateDDMMYYYY(p.date)}</p>
-                <h3 className="mt-1 text-lg font-semibold">{p.title}</h3>
-                <p className="mt-2 text-sm text-white/70">{p.excerpt}</p>
-                <div className="mt-4">
-                  <Link
-                    href={p.href}
-                    className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white/90 backdrop-blur transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40"
-                  >
-                    Read more →
-                  </Link>
-                </div>
-              </Card>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {blogPosts.map((bp) => (
+              <BlogItem key={bp.title} p={bp} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ (adds trust & SEO) */}
+      <section id="faq" className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-4 py-16">
+          <SectionTitle
+            kicker="FAQ"
+            title="Frequently Asked Questions"
+            sub="A few quick answers about scope, tooling, and who it’s for."
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <h3 className="font-semibold">Is this book tool-specific?</h3>
+              <p className="mt-2 text-white/80 text-sm">
+                No—vendor neutral. Workflows and data handoffs apply across major BIM/plant tools.
+              </p>
+            </Card>
+            <Card>
+              <h3 className="font-semibold">Who benefits most?</h3>
+              <p className="mt-2 text-white/80 text-sm">
+                EPC/EPCM teams, owner-operators, BIM leads, piping designers, QA/QC and commissioning.
+              </p>
+            </Card>
+            <Card>
+              <h3 className="font-semibold">Do I need AI expertise?</h3>
+              <p className="mt-2 text-white/80 text-sm">
+                No. We start with simple, production-ready pilots (integrity checks, anomaly detection).
+              </p>
+            </Card>
+            <Card>
+              <h3 className="font-semibold">Can I use this to standardize handover?</h3>
+              <p className="mt-2 text-white/80 text-sm">
+                Yes—there are tagging templates, data dictionaries, and KPI dashboards to make handover repeatable.
+              </p>
+            </Card>
           </div>
         </div>
       </section>
@@ -888,23 +1205,99 @@ export default function BookWebsiteDesign() {
             title="Get in Touch"
             sub="Speaking, consulting, bulk orders, or press enquiries."
           />
-        </div>
-        <div className="mx-auto max-w-7xl px-4 pb-16">
           <div className="flex flex-wrap items-center gap-3">
             <CTA
               href={`mailto:${CONTACT_EMAIL}?subject=Enquiry:%203D%20Plant%20Engineering`}
               ariaLabel="Email us"
+              onClick={() => track("contact_email_us")}
             >
               Email Us
             </CTA>
-            <Ghost href={GOODREADS_URL} target="_blank" rel="noopener noreferrer">
-              Goodreads
+            <Ghost
+              href={LINKEDIN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track("contact_linkedin_book")}
+            >
+              LinkedIn (Book)
             </Ghost>
+          </div>
+
+          {/* Contact Writers (images added) */}
+          <div className="mt-10">
+            <h3 className="text-lg font-semibold">Contact Writers</h3>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Card>
+                <div className="flex items-start gap-3">
+                  <img
+                    src={AUTHOR_SB_IMG}
+                    alt="Subhra Baran Sengupta"
+                    className="h-12 w-12 rounded-xl border border-white/10 object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div>
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold">Subhra Baran Sengupta</span>
+                    </p>
+                    <a
+                      className="mt-1 inline-block text-sm text-orange-300 underline"
+                      href="mailto:sbsengup@yahoo.com?subject=Enquiry:%203D%20Plant%20Engineering"
+                      onClick={() => track("contact_writer_sb_email")}
+                    >
+                      sbsengup@yahoo.com
+                    </a>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <div className="flex items-start gap-3">
+                  <img
+                    src={AUTHOR_SR_IMG}
+                    alt="Soumen Roy"
+                    className="h-12 w-12 rounded-xl border border-white/10 object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div>
+                    <p className="text-sm text-white/80">
+                      <span className="font-semibold">Soumen Roy</span>
+                    </p>
+                    <a
+                      className="mt-1 inline-block text-sm text-orange-300 underline"
+                      href="mailto:soumenroy@outlook.com?subject=Enquiry:%203D%20Plant%20Engineering"
+                      onClick={() => track("contact_writer_sr_email")}
+                    >
+                      soumenroy@outlook.com
+                    </a>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer with small QR */}
+      {/* Sticky mobile buy bar */}
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#0b1220]/95 backdrop-blur md:hidden">
+        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-3">
+          <span className="text-xs text-white/70 truncate">
+            Mastering 3D Plant Engineering
+          </span>
+          <a
+            href={withUTM(heroBuyUrlRaw, "sticky-mobile")}
+            aria-label={`Buy on ${heroLabel}`}
+            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_30px_rgb(2,6,23,0.35)]"
+            style={{ background: "linear-gradient(135deg,#f97316,#f59e0b)" }}
+            onClick={() => track("sticky_mobile_buy")}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Buy on {heroLabel}
+          </a>
+        </div>
+      </div>
+
+      {/* Footer */}
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row">
           <p className="text-xs text-white/60">
