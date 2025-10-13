@@ -22,7 +22,7 @@ declare global {
 
 // ===== Social links =====
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61579794313524";
-const INSTAGRAM_URL = "https://www.instagram.com/roy_3d/";
+const INSTAGRAM_URL = "https://www.instagram.com/3dplantengineering/";
 const YOUTUBE_URL = "https://www.youtube.com/@3DPlantEngineering-e4f3b/videos";
 const GOODREADS_URL =
   "https://www.goodreads.com/author/list/34690983.Soumen_Roy";
